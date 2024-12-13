@@ -36,11 +36,10 @@ class Profile(models.Model):
 class Course(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
-    lecturer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lecturer_courses')
-    students = models.ManyToManyField(User, related_name='enrolled_courses', blank=True)
+    lecturer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, limit_choices_to={'role': 'lecturer'})  # Use User model and limit to lecturers only
+    students = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='enrolled_courses', blank=True)  # Use User model for students
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.title
-

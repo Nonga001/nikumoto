@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.models import Group
 from .models import Course, Announcement
 from .forms import CourseForm, UserRegistrationForm, AnnouncementForm
+from django.http import Http404
 
 # User Authentication and Registration Views
 def register(request):
@@ -140,3 +141,70 @@ def enrollment(request):
 def custom_logout(request):
     logout(request)
     return redirect('users:login')  # Redirect to the homepage or wherever you want
+
+
+def add_course(request):
+    if request.method == 'POST':
+        form = CourseForm(request.POST)
+        if form.is_valid():
+            form.save()
+            # Add a success message
+            messages.success(request, 'Course added successfully!')
+            return redirect('home')  # Redirect to the home page after adding a course
+    else:
+        form = CourseForm()
+
+    return render(request, 'add_course.html', {'form': form})
+
+
+
+def delete_course(request, pk):
+    try:
+        # Try to get the course, and raise 404 if it doesn't exist
+        course = Course.objects.get(pk=pk)
+    except Course.DoesNotExist:
+        # If course doesn't exist, show a 404 or handle it accordingly
+        raise Http404("Course does not exist")
+
+    if request.method == 'POST':
+        # Delete the course
+        course.delete()
+        messages.success(request, 'Course deleted successfully!')
+        return redirect('home')  # Redirect to the home page after deleting
+
+    return render(request, 'delete_course.html', {'course': course})
+
+
+# In your views.py
+def unenroll_in_course(request, course_id):
+    # Fetch the course using the provided course_id
+    course = get_object_or_404(Course, id=course_id)
+
+    # Check if the current user is enrolled in the course
+    if request.user in course.students.all():
+        course.students.remove(request.user)  # Remove the user from the course's students
+
+    # Add a success message (optional)
+    messages.success(request, 'You have successfully unenrolled from the course!')
+
+    # Redirect to the home page after unenrolling
+    return redirect('home')  # Adjust this to the appropriate URL name if needed
+
+def courses_list(request):
+    courses = Course.objects.all()  # Fetch all courses
+    return render(request, 'courses_list.html', {'courses': courses})
+
+def enroll_in_course(request, course_id):
+    # Fetch the course using the provided course_id
+    course = get_object_or_404(Course, id=course_id)
+
+    # Check if the current user is not already enrolled in the course
+    if request.user not in course.students.all():
+        course.students.add(request.user)  # Add the user to the course's students
+        messages.success(request, 'You have successfully enrolled in the course!')
+    else:
+        messages.info(request, 'You are already enrolled in this course.')
+
+    # Redirect to home page after enrolling
+    return redirect('home')
+
